@@ -125,12 +125,6 @@ file_tasks:
              
     
     close_file:
-        cmp wasPreviousEndl, 1
-        jne exit_from_file
-
-        inc resultNumber
-        ;inc resultNumber
-
         exit_from_file:
             mov     ah, 3Eh
             mov     bx, descriptor
@@ -157,84 +151,47 @@ calculateEmptyStrings:
         call checkEndl
 
         ;xor ax, ax
-        ;mov ax, resultNumber 
+        ;mov al, isEndl 
         ;mov resultNumber, ax
         ;call itoa
         ;lea ax, resultString
         ;push ax
         ;call print_str
-        ;pop ax
-        
-        
+        ;pop ax     
 
-        cmp isEndl, 1
+        cmp isEndl, 0
         je check_previous
         
-        inc si
+        add si, 2
         mov isEndl, 0
-        mov wasPreviousEndl, 0
+        mov wasPreviousEndl, 1
+
         cmp si, realPartSize
         jb part_parsing
         jmp exit_loop
         
         check_previous:
-            add si, 2
+            inc si
             cmp wasPreviousEndl, 1
             je increment
-            mov wasPreviousEndl, 1
+
+            mov wasPreviousEndl, 0
             cmp si, realPartSize
             jb part_parsing
-            ;inc resultNumber
             jmp exit_loop
 
         increment:
             inc resultNumber
             mov isEndl, 0
-            mov wasPreviousEndl, 1
+            mov wasPreviousEndl, 0
             cmp si, realPartSize
             jb part_parsing
-        
-
-        ;mov al, [part + si]
-        ;xor ah,ah
-
-        ;cmp al, 0ah
-        ;je skip_symbol
-
-        ;cmp al, 0dh
-        ;jne leave_zone
-        ;inc resultNumber
-        ;cmp wasPreviousCR, 1
-        ;je increment
-
-        ;inc wasPreviousCR
-        ;inc si
-        ;cmp si, realPartSize
-        ;jb part_parsing
-        ;jmp exit_loop
-
-        ;skip_symbol:
-            ;inc si
-            ;cmp si, realPartSize
-            ;jb part_parsing
-            ;jmp exit_loop
-
-        ;increment:
-           ;inc resultNumber 
-
-        ;leave_zone:
-            ;mov wasPreviousCR, 0
-            ;inc si
-            ;cmp si, realPartSize
-            ;jb part_parsing
         
         exit_loop:
     popa
 ret
 
 checkEndl:
-    ;pusha
-
     mov al, [part + si]
     xor ah,ah
 
@@ -250,7 +207,6 @@ checkEndl:
     mov isEndl, 1
     
     exit_from_endl_check:
-    ;popa
 ret
 
 memset:
