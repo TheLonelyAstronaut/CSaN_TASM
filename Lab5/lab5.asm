@@ -162,7 +162,6 @@ calculateEmptyStrings:
         cmp isEndl, 0
         je check_previous
         
-        add si, 2
         mov isEndl, 0
         mov wasPreviousEndl, 1
 
@@ -195,18 +194,34 @@ checkEndl:
     mov al, [part + si]
     xor ah,ah
 
+    cmp al, 0dh
+    je checkNextSymbol
+
+    cmp al, 0ah
+    jne exit_from_endl_check
+
+    inc si
+    call setIsEndl
+    
+    exit_from_endl_check:
+ret
+
+checkNextSymbol:
+    call setIsEndl
     mov bl, [part + si + 1]
     xor bh,bh
 
-    cmp al, 0dh
-    jne exit_from_endl_check
-
     cmp bl, 0ah
-    jne exit_from_endl_check
+    jne exitFromCheck
 
+    inc si
+
+    exitFromCheck:
+        inc si
+ret
+
+setIsEndl:
     mov isEndl, 1
-    
-    exit_from_endl_check:
 ret
 
 memset:
