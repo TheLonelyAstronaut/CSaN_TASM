@@ -36,7 +36,7 @@ start proc
     ja bad_arguments
 
     get_path:
-        cmp     BYTE PTR es:[si], ' ' 
+        cmp     BYTE PTR es:[si], '$' 
         je      main
               
         mov     al, es:[si]
@@ -257,7 +257,7 @@ itoa:
         dec di
         
         cmp si, di
-        je reverse_mini
+        jb reverse_mini
     popa
 ret
 
