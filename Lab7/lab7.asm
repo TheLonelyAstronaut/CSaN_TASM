@@ -18,6 +18,7 @@ empty_segment ENDS
     fileError         db "Error while opening file!", '$'
 
     partSize          equ 256
+    wasPreviousLetter dw 0
     realPartSize      dw 256
     descriptor        dw 0
     pointerPosition   dd 0
@@ -25,7 +26,7 @@ empty_segment ENDS
     tempVariable      dw 0
     isEndl            db 0
     command_line      db 0
-    epb               dw 0         ; 2 bytes - seg_env (enviroment segement address (if 0 = copy from parent))         ; address of FCB structure (37 bytes for file description)
+    ;epb               dw 0         ; 2 bytes - seg_env (enviroment segement address (if 0 = copy from parent))         ; address of FCB structure (37 bytes for file description)
     spacePos          dw 0
     saveSS            dw 0      ; for restoring
     saveSP            dw 0      ; for restoring
@@ -41,7 +42,7 @@ empty_segment ENDS
     tempString        db 256 dup('$')
     fileName          db 256 dup(0)
     dtaBuffer         db 128 dup(0)
-    applicationName   db 256 dup('$')
+    applicationName   db 256 dup(0)
     part              db partSize dup('$')
     
     ; === Exec Parameter Block (EPB) для функции 4Bh ===
@@ -51,6 +52,12 @@ empty_segment ENDS
     fcb1              dd ?         ; address of FCB structure (37 bytes for file description)
     fcb2              dd ?
     Len dw $-env  ;Длина EPB
+
+    progPath          db "lab1.exe", 0
+    epb dw 0
+	    dw offset command_line,0
+	    dw 005Ch,0,006Ch,0  
+
     dsize=$-startMessage       ;размер сегмента данных
 .code
 
@@ -241,16 +248,15 @@ getStringNumber:
     popa
 ret
 
-allocate_memory proc
+allocate_memory:
   push ax
   push bx
 
-  mov ax, es                      ; program start segment address (in paragraphs)
-  mov bx, empty_segment           ; program end segment address (in paragraphs)
-  sub bx, ax                      ; BX contain minimum required memory size for programm
+  mov bx, ((csize/16)+1)+256/16+((dsize/16)+1)+256/16;
 
   mov ah, 4Ah
   int 21h
+
   jc allocate_memory_error
   jmp allocate_memory_end
 
@@ -283,21 +289,12 @@ badRange:
     call exit
 ret
 
-loadAndRun proc
-    ;xor ax, ax
-    ;mov     ax,4b00h        ;Функция EXEC (EXECute - загрузка и запуск программы)
-    ;lea     dx, fileName       ;Имя файла для запуска
-    ;lea     bx, env     ; --- Готовим EPB ---
-    ;int     21h
-    ;jb er
-    ;ret
-
-    ;er:
-    ;mov tempVariable, ax
-    ;call toString
-    ;lea dx, tempString
-    ;call puts 
-endp
+loadAndRun:
+    mov ax, 4B00h
+    lea dx, applicationName
+    lea bx, env
+    int 21h
+ret
 
 getApplicationName:
     pusha
@@ -459,7 +456,7 @@ start proc
 
     mov ax, @data        ;move data segment address in DS and ES
     mov ds, ax
-        
+
     mov bl, es:[80h] 
     add bx, 80h      ;args line last    
     mov si, 82h      ;args line start
@@ -475,6 +472,9 @@ start proc
         cmp     BYTE PTR es:[si], byte ptr ' '
         jne     getNextCharacter
 
+        ;cmp     wasPreviousLetter, 0
+        ;je      getNextCharacter
+        
         cmp     parsingStep, 1
         jne     stepTwo
         call    getIterations
@@ -487,6 +487,9 @@ start proc
         stepThree:
             call    getFilename
             jmp     main
+
+        ;setPreviousLetter:
+            ;mov wasPreviousLetter, 1
 
         getNextCharacter:
             inc     di
@@ -504,48 +507,19 @@ start proc
         call    print_str  
         pop     ax
         
-        lea     dx, iterationsMsg
-        call    puts
-
-        mov     ax, iterations
-        mov     tempVariable, ax
-        call    toString
-
-        lea     ax, tempString
-        push    ax
-        call    print_str
-        pop     ax
-
-        lea     dx, fileMsg
-        call    puts
-
-        lea     ax, fileName
-        push    ax
-        call    print_str
-        pop     ax
-
-        mov     ax, stringNumber
-        mov     tempVariable, ax
-        call    toString
-
-        lea     dx, stringMsg
-        call    puts
-
-        lea     ax, tempString
-        push    ax
-        call    print_str
-        pop     ax
-        
         dec     stringNumber
-
         call    getApplicationName
 
-        lea     ax, applicationName
-        push    ax
-        call print_str
-        pop     ax
+        xor cx, cx
+        mov cx, iterations
+        
+        startApps:
+            call    loadAndRun
+            loop    startApps
 
         call exit
 endp
+
+csize=$-print_str
 
 end start
