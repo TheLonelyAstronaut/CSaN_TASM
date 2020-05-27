@@ -383,27 +383,32 @@ printScore proc
 endp
 
 checkSide proc
-    pusha
+    ;pusha
+    push    ax
+    push    bx
+    push    cx
 
     xor     ax, ax
     xor     bx, bx
     xor     cx, cx
+    xor     dx, dx
 
-    mov     al, byte ptr ITEM_Y ; y
-    mov     bl, byte ptr ITEM_X ; x
+    mov     ax, ITEM_Y ; y
+    mov     bx, ITEM_X ; x
     
     call    calculateScreenOffset ; ax = `y` & bx = 'x' => dx = calculated offset
 
     mov     bx, dx
     sub     bx, 2
 
-    mov     al, byte ptr ITEM_WIDTH
-    mov     cl, 2
-    mul     cl
+    mov     ax, ITEM_WIDTH
+    mov     cx, 2
+    mul     cx
     add     ax, 2
 
     mov     cl, byte ptr ITEM_HEIGHT
     mov     dl, byte ptr ITEM_CHAR
+    ;add     cl, 1
 
     checkSideLoop:
         cmp     byte ptr es:[bx], dl
@@ -425,7 +430,10 @@ checkSide proc
         mov     dx, 1
 
     endChecking:
-        popa
+        pop     cx
+        pop     bx
+        pop     ax
+        ;popa
     ret
 endp
 
@@ -714,7 +722,8 @@ moveItem proc
         jmp     exitFromMoving
 
     moveDown:
-		add     ITEM_Y, 1
+        add     ITEM_Y, 1
+        xor     dx, dx
         printRectangleHelper    ITEM_X, ITEM_Y, ITEM_WIDTH, ITEM_HEIGHT, TEMP_SYMBOL
         
     exitFromMoving:
@@ -782,8 +791,8 @@ chooseItemModelByRandomValue proc
     je      setThirdModel
 
     setFirstModel:	
-        mov     dl, ITEM_CHAR
         mov     dh, RED_ATTRIBUTE
+        mov     dl, ITEM_CHAR
         mov     TEMP_SYMBOL, dx
 
         mov     ITEM_WIDTH, 3
@@ -791,17 +800,17 @@ chooseItemModelByRandomValue proc
     jmp     endSelectModel
 
     setSecondModel:	
-        mov     dl, ITEM_CHAR
         mov     dh, GREEN_ATTRIBUTE
+        mov     dl, ITEM_CHAR
         mov     TEMP_SYMBOL, dx
 
-        mov     ITEM_WIDTH, 3
+        mov     ITEM_WIDTH, 2
         mov     ITEM_HEIGHT, 2
     jmp     endSelectModel
 
     setThirdModel:	
-        mov     dl, ITEM_CHAR
         mov     dh, BLUE_ATTRIBUTE
+        mov     dl, ITEM_CHAR
         mov     TEMP_SYMBOL, dx
 
         mov     ITEM_WIDTH, 2
