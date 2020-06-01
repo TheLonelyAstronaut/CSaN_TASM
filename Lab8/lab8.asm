@@ -111,163 +111,173 @@ newInterruptionHandler proc
                 cmp     di,4000 ;//If screen end
                 jge     endReadDown
 
-                mov     al,' '  
+                mov     al,' ' ;//Add space  
                 mov     es:[di], al
                 inc     di 
                 inc     di   
-                mov     bx, 160
+
+                mov     bx, 160 ;//Check line end
                 mov     ax, di  
                 xor     dx, dx
                 div     bx   
 
-                cmp     dx, 0
+                cmp     dx, 0 ;//If line end
                 jne     checkEndDown 
-                cmp     flagDown, 0
+
+                cmp     flagDown, 0 ;//
                 jne     checkEndDown    
 
-                mov     al, 1                 
+                mov     al, 1 ;//getting current position                
                 mov     bx, fileDescriptor
 	            mov     ah, 42h             
 	            mov     cx, 0
 	            mov     dx, 0		 
-	            int     21h    
+                int     21h 
+                    
                 mov     word ptr [offset pointerPosition], dx
                 mov     word ptr [offset pointerPosition + 2], ax 
 	            mov     flagDown, 1      
         
             checkEndDown: 
-                cmp     di, 4000    
+                cmp     di, 4000  ;//If screen end  
                 jge     endReadDown
 
-                mov     ax, di 
+                mov     ax, di ;//Check line end
                 xor     dx, dx   
                 mov     bx, 160
                 div     bx 
-                cmp     dx, 0
+
+                cmp     dx, 0 ;//If line end  
                 jne     addSpacesInEndStringDown
-                jmp     readAndWriteSymbolsDown  
+
+                jmp     readAndWriteSymbolsDown ;//Get next symbol
                 
             notEndStringDown:
                 cmp     readBuffer[0], 0Ah ;//If new line
-                jne     printDown
-                jmp     readAndWriteSymbolsDown
+                jne     printDown ;//Print symbol
+
+                jmp     readAndWriteSymbolsDown ;//Get next symbol
             
             printDown:
-                mov     al, readBuffer[0]
+                mov     al, readBuffer[0] ;//Print symbol
                 mov     es:[di], al
                 add     di, 2   
 
-                mov     bx, 160
+                mov     bx, 160 ;//Check line end
                 mov     ax, di  
                 xor     dx, dx
                 div     bx
-                cmp     dx,0  
+
+                cmp     dx,0  ;//If line end
                 jne     checkEndScreen   
+
                 cmp     flagDown, 0
                 jne     checkEndScreen   
 
                 mov     flagDown, 1 
-                mov     al, 1               
+
+                mov     al, 1 ;//Get current position        
                 mov     bx, fileDescriptor
                 mov     ah, 42h            
                 mov     cx, 0
                 mov     dx, 0		 
                 int     21h    
+
                 mov     word ptr [offset pointerPosition], dx
                 mov     word ptr [offset pointerPosition + 2], ax  
                 
             checkEndScreen:
-                cmp     di, 4000
+                cmp     di, 4000 ;//If screen end  
                 jge     endReadDown 
             
-        jmp readAndWriteSymbolsDown   
+        jmp readAndWriteSymbolsDown ;//Get next symbol
 
-        endReadDown: 
-            mov     al, 1                
+        endReadDown: ;//End file read
+            mov     al, 1 ;//Get last position               
             mov     bx, fileDescriptor
             mov     ah, 42h             
             mov     cx, 0
             mov     dx, 0		 
             int     21h    
+
             mov     word ptr [offset lastPointerPosition], dx
             mov     word ptr [offset lastPointerPosition + 2], ax  
 
         jmp endHandler
             
     upMove:
-        mov     ax,0C00h 
+        mov     ax,0C00h ;//Clean stdin
         int     21h   
 
-        xor     si,si
+        xor     si,si 
         add     si, word ptr [offset lastPointerPosition]
-        add     si, word ptr [offset lastPointerPosition + 2]    
-        cmp     si, 0
+        add     si, word ptr [offset lastPointerPosition + 2] 
+
+        cmp     si, 0 ;//If empty pointer
         je      endHandler
 
-        cmp     word ptr [offset pointerPosition], 0
+        cmp     word ptr [offset pointerPosition], 0 ;//If current pointer position - 0
         jne     openFileToRead 
-        cmp     word ptr [offset pointerPosition + 2], 1
+
+        cmp     word ptr [offset pointerPosition + 2], 1 ;//If first line - disabling any actions
         je      endHandler
 
         openFileToRead:
-            mov     ah, 3Dh			      
+            mov     ah, 3Dh ;//Getting file descriptor		      
 	        mov     al, 0			 
 	        lea     dx, fileName     
 	        mov     cx, 0			        
             int     21h 
             
-            mov     flagDown, 0
-	        mov     flagUp, 0                
-	        mov     fileDescriptor, ax
+            mov     flagDown, 0 ;//Set flags to zero
+            mov     flagUp, 0 
+                           
+	        mov     fileDescriptor, ax ;//Saving file descriptor
 
-            mov     al, 0                 
+            mov     al, 0 ;//Getting start pointer                
             mov     bx, fileDescriptor
 	        mov     ah, 42h             
 	        mov     cx, word ptr [offset pointerPosition]
 	        mov     dx, word ptr [offset pointerPosition + 2]	 		 
 	        int     21h                                       
 
-            mov     cx, 160
+            mov     cx, 160 ;//Shifting line
 
             moveBack:
                 push    cx     
 
-                mov     al, 1                
+                mov     al, 1 ;//shift pointer position               
                 mov     bx, fileDescriptor
                 mov     ah, 42h            
                 mov     cx, -1
                 mov     dx, -2		 
                 int     21h   
 
-                add     ax, dx                        
-                cmp     ax, 0 
+                add     ax, dx 
+
+                cmp     ax, 0 ;//If pointer position - 0 
                 je      popCxWithoutLoop
 
                 readNext:   
-                    mov     ah, 3Fh                   
+                    mov     ah, 3Fh ;//Read symbol                  
 	                mov     bx, fileDescriptor                 
 	                mov     cx, 1         
 	                lea     dx, readBuffer               
 	                int     21h        
 
-	                cmp     readBuffer[0], 0Ah
-	                jne     popCxWithLoop  	
+	                cmp     readBuffer[0], 0Ah ;//if endline second symbol
+                    jne     popCxWithLoop  	
+                    
 	                inc     flagUp
-	                cmp     flagUp, 2
-	                je      popCxWithoutLoop 
+	                cmp     flagUp, 2 ;//If line was shifted down
+                    je      popCxWithoutLoop 
+                    
 	                pop     cx
 	                inc     cx 
-	                loop    moveBack     
-	                jmp     pushCx            
-
-	                cmp     readBuffer[0], 0Dh
-	                jne     popCxWithLoop     
-	                pop     cx
-	                inc     cx
-	        loop moveBack 
-            
-            jmp pushCx 
-            
+	        loop    moveBack     
+                    
+            jmp     pushCx            
+        
             popCxWithLoop:
             	pop     cx
                 loop    moveBack
@@ -278,45 +288,48 @@ newInterruptionHandler proc
             popCxWithoutLoop:  
                 pop     cx
 
-            mov     ax, 0b800h
+            mov     ax, 0b800h ;//Pointer to videobuff
             mov     es, ax    
             xor     di, di 
                 
-            mov     flagDown, 0    
+            mov     flagDown, 0 ;//Clear flag   
             mov     di, 0
 
             readAndWriteSymbolsUp:
-                mov     ah, 3Fh                 
+                mov     ah, 3Fh ;//Read symbol         
                 mov     bx, fileDescriptor            
                 mov     cx, 1      
                 lea     dx, readBuffer            
                 int     21h  
                   
-                cmp     ax, 0  
-                je      endReadUp                 
-                cmp     readBuffer[0], 0Dh  
+                cmp     ax, 0 ;//If end of file 
+                je      endReadUp   
+
+                cmp     readBuffer[0], 0Dh ;;If endl 
                 jne     notEndStringUp
 
                 addSpacesInEndStringUp:
-                    cmp     di, 4000
+                    cmp     di, 4000 ;//If screen end
                     jge     endReadUp       
 
-                    mov     al, ' '  
+                    mov     al, ' ' ;//Add space
                     dec     cx
                     mov     es:[di], al
                     inc     di 
                     inc     di 
-                    mov     bx, 160
+
+                    mov     bx, 160 ;//Getting line end status
                     mov     ax, di  
                     xor     dx, dx
                     div     bx  
 
-                    cmp     dx, 0
+                    cmp     dx, 0 ;//If line end
                     jne     checkEndUp 
-                    cmp     flagDown, 0
+
+                    cmp     flagDown, 0 ;//If previous symbol wasnt space
                     jne     checkEndUp
 
-                    mov     flagDown, 1 
+                    mov     flagDown, 1 ;//Getting file pointer
                     mov     al, 1                 
                     mov     bx, fileDescriptor
                     mov     ah, 42h            
@@ -327,40 +340,43 @@ newInterruptionHandler proc
                     mov     word ptr [offset pointerPosition + 2], ax
 
                 checkEndUp:
-                    cmp     di, 4000
+                    cmp     di, 4000 ;//If screen end
                     jge     endReadUp
 
-                    xor     dx, dx
+                    xor     dx, dx ;//Getting line end status
                     mov     ax, di    
                     mov     bx, 160
                     div     bx  
-                    cmp     dx,0
-                    jne     addSpacesInEndStringUp
 
-            jmp  readAndWriteSymbolsUp  
+                    cmp     dx,0 ;//If line end
+                    jne     addSpacesInEndStringUp
+                    jmp     readAndWriteSymbolsUp ;//Get next symbol
 
             notEndStringUp:
-                cmp     readBuffer[0], 0Ah
+                cmp     readBuffer[0], 0Ah ;//If endl second character
                 jne     printUp
-                jmp     readAndWriteSymbolsUp
+
+                jmp     readAndWriteSymbolsUp ;//Read next symbol
 
             printUp: 
-                mov     al, readBuffer[0]
+                mov     al, readBuffer[0] ;//Read next symbol
                 mov     es:[di], al
                 add     di, 2
 
-                mov     bx, 160
+                mov     bx, 160 ;//Getting line end flag
                 mov     ax, di  
                 xor     dx, dx
                 div     bx     
 
-                cmp     dx, 0 
+                cmp     dx, 0 ;//If line end
                 jne     checkScreenEndUp   
-                cmp     flagDown, 0
+
+                cmp     flagDown, 0 ;//If previous string wasnt space
                 jne     checkScreenEndUp      
 
-                mov     flagDown, 1 
-                mov     al, 1 
+                mov     flagDown, 1 ;//Set end line flag
+
+                mov     al, 1 ;//Save current position
                 mov     bx, fileDescriptor
                 mov     ah, 42h              
                 mov     cx, 0
@@ -370,12 +386,13 @@ newInterruptionHandler proc
                 mov     word ptr [offset pointerPosition + 2], ax
 
                 checkScreenEndUp:
-                    cmp     di, 4000	  
+                    cmp     di, 4000 ;//If screen end  
                     jge     endReadUp
-                    jmp     readAndWriteSymbolsUp
+
+                    jmp     readAndWriteSymbolsUp ;//Read next symbol
                 
             endReadUp:   
-                mov     al, 1                
+                mov     al, 1 ;//Save current position               
                 mov     bx, fileDescriptor
                 mov     ah, 42h             
                 mov     cx, 0
@@ -384,25 +401,20 @@ newInterruptionHandler proc
                 mov     word ptr [offset lastPointerPosition], dx
                 mov     word ptr [offset lastPointerPosition + 2], ax 
 
-    endHandler:
+    endHandler: ;//End file read
         mov     ah, 3Eh            
 	    mov     bx, fileDescriptor          
         int     21h
         popa 
         iret
     
-    escKey:
+    escKey: ;//Restore old interruption handler
         mov     ax, 2509h
         mov     dx, word ptr cs:[oldInterruptionHandler]
         mov     ds, word ptr cs:[oldInterruptionHandler+2]
         int     21h 
     
 	    popa	                          
-    
-        mov     es, cs:2ch 
-        mov     ah, 49h 
-        int     21h    
-
 	    iret
 endp
 
